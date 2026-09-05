@@ -1,5 +1,0 @@
-services:
-    App\Tests\Booking\InMemoryBookingRepository: ~
-
-    App\Booking\Domain\BookingRepository:
-        alias: App\Tests\Booking\InMemoryBookingRepository

@@ -29,3 +29,18 @@ get_session:
     path: /api/sessions/{sessionId}
     methods: [GET]
     controller: App\Session\Infrastructure\Http\GetSessionController
+
+book_seats:
+    path: /api/sessions/{sessionId}/bookings
+    methods: [POST]
+    controller: App\Booking\Infrastructure\Http\BookSeatsController
+
+get_booking:
+    path: /api/bookings/{bookingId}
+    methods: [GET]
+    controller: App\Booking\Infrastructure\Http\GetBookingController
+
+cancel_booking:
+    path: /api/bookings/{bookingId}/cancellation
+    methods: [POST]
+    controller: App\Booking\Infrastructure\Http\CancelBookingController

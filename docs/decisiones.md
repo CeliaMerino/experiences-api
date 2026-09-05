@@ -441,3 +441,33 @@ Ninguna de esta fase. Coordinación con Session, persistencia y endpoints quedan
 
 - Retirar los alias InMemory de test/dev en F12. Persistencia, endpoints y UC-05 8a quedan en F12; correo en F14.
 
+---
+
+## F12 — Infraestructura Booking
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | Tipos DBAL `BookingId`, `UserId`, `ContactEmail`; reutiliza `SessionId`/`Seats`/`Money` (consulta 1, A). | Ampliar `Crea`; mapear primitivos tocando Domain. | Mismo patrón F6/F9. `doctrine.yaml` no se toca. |
+| 2 | Se borran `config/packages/{test,dev}/booking.yaml` (consulta 2, A). Binding vía `#[AsAlias]` en `DoctrineBookingRepository`. | Reapuntar alias; dejar InMemory. | Cierra la deuda de F11; los funcionales usan Doctrine. |
+| 3 | UC-05 8a (rollback + cero notificaciones) diferida a F14 (consulta 3, A). | Sabotaje fuera de `Crea`; ampliar `Acepta cuando` de F12. | Sin Mailer ni gancho de fallo en el `Crea`; F14 ya pide forzar el fallo tras `reserve()`. |
+| 4 | `status` con `enum-type` Doctrine → VARCHAR del valor backed. | Tipo DBAL `BookingStatusType`. | El `Crea` pide `status` como cadena; el enum backed ya lo es. |
+| 5 | Sin FK `session_id` → `sessions`; solo INDEX. | FK. | Coherente con `sessions.experience_id` en F9. |
+| 6 | «Sesión ya empezada» sembrada con `SessionRepository::save` (reloj de alta anterior al FrozenClock de test). | SQL crudo. | La API rechaza altas en pasado (`session-in-the-past`). |
+
+### Supuestos
+
+- `make check` no exige nginx arriba para los funcionales de booking (solo WebTestCase + `app_test`).
+- La parte de notificaciones de UC-05/UC-07 postcondiciones queda en F14.
+
+### Divergencias
+
+- Tres tipos Doctrine y el borrado de los YAML de alias fuera del `Crea` literal; autorizados en consultas 1 y 2.
+- Extensión UC-05 8a no cubierta en F12; autorizada en consulta 3 (pasa a F14). Corrige la deuda de F11 que la situaba aquí.
+
+### Deuda abierta
+
+- UC-05 8a y correo (UC-08/UC-09) en F14. Concurrencia de aforo en F13. El unwrap de `HandlerFailedException` sigue en cada controlador de escritura (deuda de F6).
+
