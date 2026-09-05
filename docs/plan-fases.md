@@ -2,9 +2,11 @@
 
 Documento de trabajo para un agente de codificación. Una fase por sesión y por commit. El agente no avanza a la fase siguiente hasta que la verificación de la actual pasa en verde.
 
-Cada fase declara qué casos de uso de `casos-de-uso.md` cubre. Las fases sin esa línea son andamiaje.
+Cada fase declara qué casos de uso de `use-cases.md` cubre. Las fases sin esa línea son andamiaje.
 
-**Stack fijado:** PHP 8.3 · Symfony 7 · PostgreSQL 16 · Doctrine ORM · PHPUnit 11 · Docker Compose
+**Stack fijado:** PHP 8.3 · Symfony 7.4 · PostgreSQL 17 · Doctrine ORM · PHPUnit 13 · Docker Compose
+
+**Línea de base del repo** — no se parte de un directorio vacío. El esqueleto Symfony 7.4 Flex ya existe, con Doctrine, Messenger, Mailer, Serializer, Validator, PHPUnit 13, PHPStan y PHP CS Fixer. `compose.yaml` solo declara el servicio `database` (`postgres:17-alpine`). Faltan `Dockerfile`, servicios `php` y `nginx`, `Makefile`, deptrac, monolog y el árbol hexagonal. F0 y F1 completan ese esqueleto; no lo recrean ni revierten los paquetes ya instalados.
 
 ---
 
@@ -18,7 +20,7 @@ Aplican a todas las fases. Una violación invalida la fase aunque los tests pase
 4. Los importes son enteros de la unidad mínima de la divisa. `float` está prohibido para dinero.
 5. El mapeo de Doctrine vive en XML bajo `config/doctrine/`. Las entidades no llevan atributos de ORM.
 6. Una migración ya creada no se edita. Los cambios de esquema van en una migración nueva.
-7. No se instalan dependencias que la fase no liste.
+7. No se instalan dependencias que la fase no liste. Las que ya están en `composer.json` al empezar la fase no se reinstalan ni se eliminan.
 8. No se crean archivos fuera de la lista `Crea` de la fase.
 9. Entre módulos, las dependencias van `Booking → Session → Experience → Shared`. Nunca al revés, y sin ciclos.
 10. Constructores de agregados privados, cero setters, referencias entre agregados por identificador. La lógica que abarca dos agregados vive en un servicio de dominio, no en el manejador.
@@ -104,22 +106,25 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 
 ## Fases
 
-### F0 — Esqueleto y contenedores
+### F0 — Contenedores de aplicación
 **Depende de:** — · **Duración:** 10 min
 
-**Entrega** — Proyecto Symfony arrancable con base de datos, sin lógica de negocio.
+**Entrega** — La aplicación arranca dentro de Compose, habla con PostgreSQL y tiene el árbol hexagonal vacío.
 
 **Crea**
-- `compose.yaml` con servicios `php` (8.3-fpm), `nginx` y `db` (postgres:16), red interna y volumen de datos.
-- `Dockerfile` con las extensiones `pdo_pgsql`, `intl` y Composer.
-- Proyecto Symfony 7 mínimo (`symfony/framework-bundle`, `symfony/runtime`, `symfony/yaml`, `doctrine/orm`, `doctrine/doctrine-bundle`, `doctrine/doctrine-migrations-bundle`, `symfony/messenger`, `symfony/uid`).
-- El árbol de directorios completo del mapa anterior, con un `.gitkeep` por carpeta vacía.
-- `.env` y `.env.test` con `DATABASE_URL` apuntando a `db`.
+- `Dockerfile` con PHP 8.3-fpm, extensiones `pdo_pgsql`, `intl` y Composer.
+- En `compose.yaml`, servicios `php` y `nginx` (puerto anfitrión 8080) en la misma red que `database`. No se recrea ni se renombra el servicio `database` (`postgres:17-alpine`).
+- El árbol de directorios completo del mapa anterior, con un `.gitkeep` por carpeta vacía. `src/Kernel.php` se conserva. Los directorios Flex `src/Entity`, `src/Repository` y `src/Controller` no forman parte del mapa: no se usa su código.
+- `DATABASE_URL` en `.env` y `.env.test` apuntando al host `database` con usuario/contraseña `app`/`app` y `serverVersion=17`.
+- En `config/packages/doctrine.yaml`, mapeo XML bajo `config/doctrine/` para los tres contextos. Se retira el mapping Flex `App\Entity` por atributos.
+- En `composer.json`, la restricción `"php": ">=8.3"` para coincidir con la imagen.
 
-**No toca** — nada, es la primera fase.
+**Instala** — ninguna dependencia nueva.
+
+**No toca** — `phpunit.dist.xml`, `phpstan.dist.neon`, `.php-cs-fixer.dist.php`, `compose.override.yaml`, los paquetes ya presentes en `composer.json`.
 
 **Acepta cuando**
-- `docker compose up -d` deja los tres servicios en estado `running`.
+- `docker compose up -d` deja `php`, `nginx` y `database` en estado `running`.
 - `curl -s -o /dev/null -w "%{http_code}" localhost:8080` devuelve un código HTTP, no un error de conexión.
 - `docker compose exec php bin/console doctrine:query:sql "SELECT 1"` devuelve una fila.
 
@@ -131,11 +136,13 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 **Entrega** — Un único comando que verifica estilo, tipos, capas y pruebas.
 
 **Crea**
-- `phpunit.xml.dist` con las suites `unit`, `application`, `functional` y `concurrency`; esta última excluida de la ejecución por defecto.
-- `phpstan.neon` en `level: 9`, analizando `src` y `tests`.
+- Suites `unit`, `application`, `functional` y `concurrency` en el `phpunit.dist.xml` ya existente (no se renombra a `phpunit.xml.dist`); `concurrency` excluida de la ejecución por defecto.
+- `phpstan.dist.neon` en `level: 9`, analizando `src` y `tests`. No se crea `phpstan.neon`: Flex lo ignora en `.gitignore` como override local.
 - `deptrac.yaml` con dos conjuntos de capas: las técnicas (`Domain`, `Application`, `Infrastructure`) por módulo, y las de módulo (`Shared`, `Experience`, `Session`, `Booking`). Expresa como restricciones las reglas permanentes 1, 2 y 9.
-- `.php-cs-fixer.dist.php` con el conjunto `@Symfony` y `declare(strict_types=1)` obligatorio.
+- En `.php-cs-fixer.dist.php`, regla `declare_strict_types` además del conjunto `@Symfony` que ya tiene.
 - `Makefile` con `up`, `down`, `test`, `stan`, `deptrac`, `cs`, `check` (los cuatro anteriores en cadena) y `concurrency`.
+
+**Instala** — `deptrac/deptrac` como require-dev. Ninguna otra.
 
 **No toca** — `compose.yaml`, `Dockerfile`, `src/`.
 
@@ -181,7 +188,7 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 **Crea**
 - `src/Shared/Infrastructure/Http/JsonRequestDecoder.php` — decodifica el cuerpo de las peticiones con contenido. Lanza `MalformedJson` si el JSON no parsea y `UnsupportedMediaType` si el `Content-Type` no es `application/json`. Ambas viven en `src/Shared/Infrastructure/Http/` porque no son errores de dominio.
 - `src/Shared/Infrastructure/Http/ProblemJsonExceptionListener.php` — mapea `InvalidValue`, `NotFound` y `Conflict` según la tabla de errores, usando el `errorType()` de la excepción concreta; añade `MalformedJson` a `400` y `UnsupportedMediaType` a `415`. Cualquier otra excepción sale como `500` sin filtrar el mensaje interno.
-- `config/packages/messenger.yaml` — bus `command.bus` con el middleware `doctrine_transaction`, y bus `event.bus` con `dispatch_after_current_bus`.
+- Completa el `config/packages/messenger.yaml` ya existente: bus `command.bus` con el middleware `doctrine_transaction`, y bus `event.bus` con `dispatch_after_current_bus`.
 - `tests/Shared/Functional/ProblemJsonTest.php` — una ruta de prueba que recibe cuerpo y lanza cada excepción; asevera código, `Content-Type` y forma del cuerpo.
 
 **No toca** — `src/Shared/Domain` completo.
@@ -442,11 +449,13 @@ Esta prueba corre contra el contenedor levantado y su base de datos, no contra d
 
 **Crea**
 - `src/Shared/Domain/Mailer.php` — puerto con `send(string $to, string $subject, string $body)`.
-- `src/Shared/Infrastructure/Mailer/LoggerMailer.php`.
+- `src/Shared/Infrastructure/Mailer/LoggerMailer.php` — escribe por el logger de Symfony; no envía correo real. El `symfony/mailer` ya instalado permanece con `MAILER_DSN=null://null`.
 - `src/Shared/Infrastructure/Bus/Event/DoctrineDomainEventPublisher.php` — recoge los eventos de los agregados guardados y los despacha por `event.bus`.
 - `src/Booking/Infrastructure/Notification/SendBookingConfirmationEmail.php` y `SendBookingCancellationEmail.php`.
 - `tests/Booking/SpyMailer.php`.
 - `tests/Booking/Functional/BookingNotificationTest.php`.
+
+**Instala** — `symfony/monolog-bundle`, para que exista el servicio `logger` que usa `LoggerMailer`.
 
 **No toca** — `src/Booking/Domain`, `src/Booking/Application`, `src/Session`, los controladores de F12.
 

@@ -6,15 +6,17 @@ alwaysApply: true
 
 # Contexto
 
-API de reservas de experiencias. PHP 8.3 · Symfony 7 · PostgreSQL 16 · Doctrine ORM · PHPUnit 11 · Docker Compose.
+API de reservas de experiencias. PHP 8.3 · Symfony 7.4 · PostgreSQL 17 · Doctrine ORM · PHPUnit 13 · Docker Compose.
 Arquitectura hexagonal con DDD, tres contextos: `Experience`, `Session`, `Booking`.
 
 El trabajo avanza por fases numeradas. En cada conversación se te dará una sola fase. No adelantes trabajo de fases posteriores ni rehagas fases cerradas: tener el plan completo a la vista no es permiso para implementar lo que viene después.
 
+El repo no parte de cero: es un esqueleto Symfony 7.4 Flex. F0 y F1 lo completan; no lo recrean ni sustituyen los paquetes ya instalados. Los ficheros de calidad que Flex genera se conservan: `phpunit.dist.xml`, `phpstan.dist.neon`, `.php-cs-fixer.dist.php`. `phpstan.neon` y `phpunit.xml` son overrides locales y están en `.gitignore`.
+
 # Fuentes de verdad
 
 - `docs/plan-fases.md` — contrato de la API, tabla de errores y el bloque de cada fase.
-- `docs/casos-de-uso.md` — flujos, precondiciones y extensiones de los nueve casos de uso.
+- `docs/use-cases.md` — flujos, precondiciones y extensiones de los nueve casos de uso.
 - Este archivo — lo que invalida un cambio en cualquier diff.
 
 Ninguno de los tres reproduce lo que dice otro. Si aun así encuentras una contradicción, gana el documento de `docs/` y la reportas en la respuesta en lugar de elegir por tu cuenta.
@@ -29,7 +31,7 @@ Una violación invalida el cambio aunque los tests pasen. La numeración es la m
 4. Los importes son enteros de la unidad mínima de la divisa. `float` está prohibido para dinero.
 5. El mapeo de Doctrine vive en XML bajo `config/doctrine/`. Las entidades no llevan atributos de ORM.
 6. Una migración ya creada no se edita. Los cambios de esquema van en una migración nueva.
-7. No se instalan dependencias que la fase no liste.
+7. No se instalan dependencias que la fase no liste. Las que ya están en `composer.json` al empezar la fase no se reinstalan ni se eliminan.
 8. No se crean archivos fuera de la lista `Crea` de la fase.
 9. Entre módulos, las dependencias van `Booking → Session → Experience → Shared`. Nunca al revés, y sin ciclos.
 10. Constructores de agregados privados, cero setters, referencias entre agregados por identificador. La lógica que abarca dos agregados vive en un servicio de dominio, no en el manejador.

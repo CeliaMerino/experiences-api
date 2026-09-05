@@ -1,6 +1,6 @@
 # Casos de uso — Motor de reservas de experiencias (v1)
 
-Especificación de los casos de uso representados en `casos-de-uso.puml`. Alineada con el contrato de API congelado en `plan-fases.md`; ninguna fase lo altera.
+Especificación de los casos de uso representados en `use-cases.puml`. Alineada con el contrato de API congelado en `plan-fases.md`; ninguna fase lo altera.
 
 Los identificadores se han renumerado al incorporar las dos lecturas nuevas, agrupándolos por contexto: experiencia, sesión, reserva y notificaciones. Correspondencia con la numeración anterior: UC-01 → UC-01 · UC-02 → UC-03 · UC-03 → UC-05 · UC-04 → UC-07 · UC-05 → UC-04 · UC-06 → UC-08 · UC-07 → UC-09. UC-02 y UC-06 son nuevos.
 
