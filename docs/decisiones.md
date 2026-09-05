@@ -299,3 +299,32 @@ Ninguna de esta fase. Persistencia, caso de uso de alta y endpoints quedan en F5
 
 - SessionId/BookingId necesitarán el mismo `\Stringable` cuando F9/F12 persistan.
 - El listener de F3 sigue sin desempaquetar `HandlerFailedException`; cada controlador que despache por el bus debe hacerlo (o se centraliza en una fase que toque el listener).
+
+---
+
+## F7 — Dominio Session
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `Seats::of` exige ≥ 1; `Seats::none()` representa el cero del contador. | `of` admite 0. | F10 pide `InvalidValue` al construir `Seats` con 0; `seatsAvailable()` tiene que poder ser 0. |
+| 2 | `SessionId` implementa `\Stringable` ya. | Dejarlo para F9. | F9 no toca Domain. Cierra la deuda de F6 sobre SessionId; BookingId sigue abierta. |
+| 3 | `Session::schedule` recibe un `SessionId` ya construido. | Generarlo dentro de la fábrica. | Misma forma que `Experience::create` (F4). F8 puede hacer `SessionId::generate()` sin `if`. |
+| 4 | `startsAt <= now` es pasado (`SessionInThePast` / `hasStarted`). | Solo `<`. | UC-03 exige fecha *posterior* al reloj; el igual no es posterior. |
+| 5 | `release` de más plazas que las tomadas lanza `InvalidValue`. | Clampear a 0. | El clamp ocultaría un invariante roto. No hay tipo nuevo en la tabla de errores. |
+| 6 | `getForUpdate` lanza `SessionNotFound` (no devuelve null). | `?Session`. | El `Crea` declara retorno `Session`. F11 no puede meter un `if`. |
+
+### Supuestos
+
+- F8 convertirá `startsAt` a la zona de la experiencia antes de llamar a `Session::schedule`. El agregado compara instantes, no días civiles.
+- El bloqueo pesimista de `getForUpdate` es cosa del adaptador Doctrine en F9; el puerto solo declara el contrato.
+
+### Divergencias
+
+Ninguna respecto al bloque de F7.
+
+### Deuda abierta
+
+Ninguna de esta fase. Planificador, persistencia y endpoints quedan en F8 y F9. BookingId sigue debiendo `\Stringable` (deuda de F6).
