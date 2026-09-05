@@ -497,3 +497,32 @@ Ninguna respecto al bloque de F13.
 
 - UC-05 8a y correo (UC-08/UC-09) en F14. El unwrap de `HandlerFailedException` sigue en cada controlador de escritura (deuda de F6).
 
+---
+
+## F14 — Eventos de dominio y correo
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | Receta Flex de `symfony/monolog-bundle` (consulta 1, A): `config/bundles.php`, `config/packages/monolog.yaml`, `composer.json`/`lock`, `symfony.lock`, `config/reference.php`. | `--no-scripts` y el logger del FrameworkBundle. | El bloque Instala el bundle para el servicio `logger`. |
+| 2 | `config/packages/test/mailer.yaml` aliasa `Mailer` → `SpyMailer` (consulta 2, A). `LoggerMailer` con `#[AsAlias(..., when: ['dev', 'prod'])]`. | `services_test.yaml`; `container->set()` en cada test. | Mismo patrón que F2. Sin `when`, el `AsAlias` pisa el YAML de test (F9). |
+| 3 | `composer require symfony/monolog-bundle` sin pinning a `7.4.*` (consulta 3, A). Quedó `^4.0` (4.0.2). | Forzar `7.4.*` (no existe); fijar `^3.11`. | El bundle numera aparte del monolito. `extra.symfony.require: 7.4.*` no aplica aquí. |
+| 4 | Despacho con `DispatchAfterCurrentBusStamp`. | `dispatch()` pelado en `postFlush`. | Sin el stamp los manejadores corren dentro de la transacción y el fallo en `save` enviaría correo. |
+| 5 | `KernelBrowser::disableReboot()` en los funcionales de notificación. | Recuperar el spy tras cada request. | El kernel de test se reinicia al terminar la petición y el spy quedaría vacío. |
+
+### Supuestos
+
+- En `dev`, `LoggerMailer` escribe en `var/log/dev.log` vía Monolog. No hay aserción de ese fichero en `make check`.
+
+### Divergencias
+
+- Ficheros de receta Flex y `config/packages/test/mailer.yaml` fuera del `Crea` literal; autorizados en consultas 1 y 2.
+- Constraint `^4.0` en lugar de un `7.4.*` que Packagist no publica; autorizado en consulta 3.
+
+### Deuda abierta
+
+- Fallo del proveedor de correo: se registra y no revierte la reserva (UC-08 3a). El reintento sigue siendo deuda declarada en `use-cases.md` (sin outbox).
+- El unwrap de `HandlerFailedException` sigue en cada controlador de escritura (deuda de F6).
+

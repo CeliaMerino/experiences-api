@@ -1,0 +1,7 @@
+services:
+    App\Tests\Booking\SpyMailer:
+        public: true
+
+    App\Shared\Domain\Mailer:
+        alias: App\Tests\Booking\SpyMailer
+        public: true
