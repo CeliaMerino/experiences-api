@@ -1,6 +1,0 @@
-services:
-    App\Tests\Experience\InMemoryExperienceRepository: ~
-
-    App\Experience\Domain\ExperienceRepository:
-        alias: App\Tests\Experience\InMemoryExperienceRepository
-        public: true

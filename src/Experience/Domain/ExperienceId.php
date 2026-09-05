@@ -6,7 +6,7 @@ namespace App\Experience\Domain;
 
 use App\Shared\Domain\ValueObject\Uuid;
 
-final class ExperienceId
+final class ExperienceId implements \Stringable
 {
     private function __construct(private Uuid $value)
     {
@@ -30,5 +30,10 @@ final class ExperienceId
     public function equals(self $other): bool
     {
         return $this->value->equals($other->value);
+    }
+
+    public function __toString(): string
+    {
+        return $this->value();
     }
 }

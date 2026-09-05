@@ -9,3 +9,13 @@
 
 controllers:
     resource: routing.controllers
+
+create_experience:
+    path: /api/experiences
+    methods: [POST]
+    controller: App\Experience\Infrastructure\Http\CreateExperienceController
+
+get_experience:
+    path: /api/experiences/{experienceId}
+    methods: [GET]
+    controller: App\Experience\Infrastructure\Http\GetExperienceController

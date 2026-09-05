@@ -270,3 +270,32 @@ Ninguna de esta fase. Persistencia, caso de uso de alta y endpoints quedan en F5
 ### Deuda abierta
 
 - Retirar o reasignar `config/packages/test/experience.yaml` cuando F6 registre la impl Doctrine, para que los funcionales no persistan en memoria.
+
+---
+
+## F6 — Infraestructura Experience
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | Tipos DBAL en `Shared/.../Doctrine/DateTimeZoneType` y en `Experience/.../Persistence/*Type` (consulta 1, A). Registro con `Type::addType` en el constructor del repositorio. | Tocar `doctrine.yaml`; solo embeddables. | F0: F6 no toca `doctrine.yaml`. Los tipos de Experience no caben en `Crea`; se autorizaron. |
+| 2 | Borrar `config/packages/test/experience.yaml` (consulta 2, A). Binding vía `#[AsAlias]` en `DoctrineExperienceRepository`. | Reapuntar el alias; dejar InMemory en test. | Cierra la deuda de F5; los funcionales usan Doctrine. Los tests de aplicación siguen instanciando InMemory a mano. |
+| 3 | `ExperienceId` implementa `\Stringable` (consulta 4, A). | Embeddables anidados; cambiar el id a `string`. | Doctrine ORM 3 hace `implode` del identificador en el UnitOfWork; sin `__toString` el persist falla. Excepción mínima al No toca de Domain. |
+| 4 | `#[AsController]` en ambos controladores; unwrap de `HandlerFailedException` en el de alta. | Tocar el listener de F3; dejar el 500. | Sin tag el contenedor no expone el controlador. Messenger envuelve `InvalidValue` y el listener de F3 no desempaqueta (No toca). |
+
+### Supuestos
+
+- `app_test` ya existe (init de F0). El bootstrap solo migra.
+- El aviso deptrac de `DateTimeZoneType` en dos capas (SharedInfrastructure + Doctrine) se tolera; no es violación.
+
+### Divergencias
+
+- Ficheros de tipos Doctrine y el borrado de `experience.yaml` fuera del `Crea` literal; autorizados en consultas 1 y 2.
+- Un método en Domain (`ExperienceId::__toString`) pese al No toca; autorizado en consulta 4.
+
+### Deuda abierta
+
+- SessionId/BookingId necesitarán el mismo `\Stringable` cuando F9/F12 persistan.
+- El listener de F3 sigue sin desempaquetar `HandlerFailedException`; cada controlador que despache por el bus debe hacerlo (o se centraliza en una fase que toque el listener).

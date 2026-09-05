@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<doctrine-mapping xmlns="http://doctrine-project.org/schemas/orm/doctrine-mapping"
+                  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                  xsi:schemaLocation="http://doctrine-project.org/schemas/orm/doctrine-mapping
+                          https://www.doctrine-project.org/schemas/orm/doctrine-mapping.xsd">
+
+    <entity name="App\Experience\Domain\Experience" table="experiences">
+        <id name="id" type="experience_id">
+            <generator strategy="NONE"/>
+        </id>
+        <field name="providerId" type="provider_id" column="provider_id" nullable="false"/>
+        <field name="title" type="title" length="150" nullable="false"/>
+        <field name="description" type="description" nullable="false"/>
+        <field name="timezone" type="date_time_zone" length="64" nullable="false"/>
+    </entity>
+</doctrine-mapping>
