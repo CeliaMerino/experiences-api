@@ -245,3 +245,28 @@ Ninguna respecto al bloque de F4.
 ### Deuda abierta
 
 Ninguna de esta fase. Persistencia, caso de uso de alta y endpoints quedan en F5 y F6.
+
+---
+
+## F5 — Aplicación Experience
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `config/packages/test/experience.yaml` aliasa `ExperienceRepository` → `InMemoryExperienceRepository` (consulta 1, A). | Excluir el manejador del contenedor; binding en `services.yaml`; impl temporal en `src/`. | Sin impl del puerto, el contenedor de test no compila al registrar el manejador. Mismo patrón que `Clock` en F2. |
+| 2 | Extensiones UC-01 cubiertas en tests de aplicación con `InvalidValue` (consulta 2, A). | Exigir funcionales HTTP ya en F5. | El `Crea` de F5 no incluye endpoints; el HTTP `422` queda en F6. Gana `plan-fases.md` frente a la regla 20. |
+| 3 | Handler con `#[AsMessageHandler(bus: 'command.bus')]`; retorno `ExperienceId`; command con props `public readonly`. | Sin atributo; retorno `string`; getters. | Autoconfigure para F6; tipo fuerte; forma habitual Symfony 7. |
+
+### Supuestos
+
+- En F6, al existir `DoctrineExperienceRepository`, el alias de test seguirá apuntando al doble en memoria salvo que esa fase lo retire o lo reapunte. Los funcionales de F6 deben usar Doctrine, no el InMemory.
+
+### Divergencias
+
+- Un fichero de `config/packages/test/` no listado en el `Crea` original. Autorizado en consulta 1.
+
+### Deuda abierta
+
+- Retirar o reasignar `config/packages/test/experience.yaml` cuando F6 registre la impl Doctrine, para que los funcionales no persistan en memoria.
