@@ -133,3 +133,30 @@ Ninguna.
 | 2 | F1 exige `deptrac.yaml` sin el paquete | Instala declara `deptrac/deptrac`. |
 | 3 | F1 crea `phpunit.xml.dist` | El Crea nombra el `phpunit.dist.xml` ya existente y prohíbe el rename. |
 | 4 | F14 `LoggerMailer` sin monolog ni servicio `logger` | F14 Instala `symfony/monolog-bundle`. El servicio `logger` ya existe sin monolog (`Symfony\Component\HttpKernel\Log\Logger`). |
+
+---
+
+## F1 — Calidad automatizada
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | Capas técnicas de deptrac nominadas por módulo (`ExperienceDomain`, …). | Un `Domain` / `Application` / `Infrastructure` globales solapados con capas de módulo. | El solape marca como violación el `Booking → Session` legal (regla 9). |
+| 2 | Excluir `config/preload.php` del finder de CS Fixer (consulta 1, opción A). | Añadir `declare(strict_types=1)` al preload, o ampliar `Crea` en el plan. | El fichero no está en `Crea`; mismo trato que `bundles.php` / `reference.php`. |
+| 3 | Quitar el `method_exists` de `bootEnv` en `tests/bootstrap.php` (consulta 2, opción A). | `ignoreErrors` en PHPStan, o sacar el bootstrap de los paths. | En Symfony 7.4 `bootEnv` siempre existe; el guardia es código muerto y rompe level 9. |
+| 4 | `setRiskyAllowed(true)`, excluir `vendor` y `append` de `bin/console` en el fixer. | Dejar el finder Flex tal cual. | Sin risky, `declare_strict_types` no aplica; sin excluir `vendor`, `cs` falla; `bin/console` no termina en `.php`. |
+| 5 | Cache de deptrac en `var/.deptrac.cache`. | `.deptrac.cache` en la raíz. | La raíz habría exigido tocar `.gitignore` (fuera de alcance). |
+
+### Supuestos
+
+- `defaultTestSuite="unit,application,functional"` con coma es válido en PHPUnit 13.3 (el merger hace `explode(',', …)`).
+
+### Divergencias
+
+Ninguna respecto al bloque de F1.
+
+### Deuda abierta
+
+Ninguna de esta fase.

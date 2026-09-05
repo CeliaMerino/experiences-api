@@ -9,6 +9,7 @@
          failOnWarning="true"
          bootstrap="tests/bootstrap.php"
          cacheDirectory=".phpunit.cache"
+         defaultTestSuite="unit,application,functional"
 >
     <php>
         <ini name="display_errors" value="1" />
@@ -18,8 +19,26 @@
     </php>
 
     <testsuites>
-        <testsuite name="Project Test Suite">
-            <directory>tests</directory>
+        <testsuite name="unit">
+            <directory>tests/Shared/Unit</directory>
+            <directory>tests/Experience/Unit</directory>
+            <directory>tests/Session/Unit</directory>
+            <directory>tests/Booking/Unit</directory>
+        </testsuite>
+        <testsuite name="application">
+            <directory>tests/Shared/Application</directory>
+            <directory>tests/Experience/Application</directory>
+            <directory>tests/Session/Application</directory>
+            <directory>tests/Booking/Application</directory>
+        </testsuite>
+        <testsuite name="functional">
+            <directory>tests/Shared/Functional</directory>
+            <directory>tests/Experience/Functional</directory>
+            <directory>tests/Session/Functional</directory>
+            <directory>tests/Booking/Functional</directory>
+        </testsuite>
+        <testsuite name="concurrency">
+            <directory>tests/Concurrency</directory>
         </testsuite>
     </testsuites>
 

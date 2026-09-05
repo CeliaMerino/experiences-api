@@ -1,0 +1,152 @@
+deptrac:
+  paths:
+    - ./src
+  layers:
+    - name: SharedDomain
+      collectors:
+        - type: directory
+          value: src/Shared/Domain/.*
+    - name: SharedInfrastructure
+      collectors:
+        - type: directory
+          value: src/Shared/Infrastructure/.*
+    - name: ExperienceDomain
+      collectors:
+        - type: directory
+          value: src/Experience/Domain/.*
+        - type: classLike
+          value: App\\Experience\\Domain\\.*
+    - name: ExperienceApplication
+      collectors:
+        - type: directory
+          value: src/Experience/Application/.*
+    - name: ExperienceInfrastructure
+      collectors:
+        - type: directory
+          value: src/Experience/Infrastructure/.*
+    - name: SessionDomain
+      collectors:
+        - type: directory
+          value: src/Session/Domain/.*
+        - type: classLike
+          value: App\\Session\\Domain\\.*
+    - name: SessionApplication
+      collectors:
+        - type: directory
+          value: src/Session/Application/.*
+    - name: SessionInfrastructure
+      collectors:
+        - type: directory
+          value: src/Session/Infrastructure/.*
+    - name: BookingDomain
+      collectors:
+        - type: directory
+          value: src/Booking/Domain/.*
+        - type: classLike
+          value: App\\Booking\\Domain\\.*
+    - name: BookingApplication
+      collectors:
+        - type: directory
+          value: src/Booking/Application/.*
+    - name: BookingInfrastructure
+      collectors:
+        - type: directory
+          value: src/Booking/Infrastructure/.*
+    - name: Symfony
+      collectors:
+        - type: classLike
+          value: Symfony\\.*
+    - name: Doctrine
+      collectors:
+        - type: classLike
+          value: Doctrine\\.*
+    - name: Psr
+      collectors:
+        - type: classLike
+          value: Psr\\.*
+    - name: HttpFoundation
+      collectors:
+        - type: classLike
+          value: Symfony\\Component\\HttpFoundation\\.*
+  ruleset:
+    SharedDomain:
+      - SharedDomain
+    SharedInfrastructure:
+      - SharedInfrastructure
+      - SharedDomain
+      - Symfony
+      - Doctrine
+      - Psr
+      - HttpFoundation
+    ExperienceDomain:
+      - ExperienceDomain
+      - SharedDomain
+    ExperienceApplication:
+      - ExperienceApplication
+      - ExperienceDomain
+      - SharedDomain
+      - Symfony
+      - Psr
+    ExperienceInfrastructure:
+      - ExperienceInfrastructure
+      - ExperienceApplication
+      - ExperienceDomain
+      - SharedDomain
+      - SharedInfrastructure
+      - Symfony
+      - Doctrine
+      - Psr
+      - HttpFoundation
+    SessionDomain:
+      - SessionDomain
+      - ExperienceDomain
+      - SharedDomain
+    SessionApplication:
+      - SessionApplication
+      - SessionDomain
+      - ExperienceDomain
+      - SharedDomain
+      - Symfony
+      - Psr
+    SessionInfrastructure:
+      - SessionInfrastructure
+      - SessionApplication
+      - SessionDomain
+      - ExperienceDomain
+      - ExperienceApplication
+      - ExperienceInfrastructure
+      - SharedDomain
+      - SharedInfrastructure
+      - Symfony
+      - Doctrine
+      - Psr
+      - HttpFoundation
+    BookingDomain:
+      - BookingDomain
+      - SessionDomain
+      - ExperienceDomain
+      - SharedDomain
+    BookingApplication:
+      - BookingApplication
+      - BookingDomain
+      - SessionDomain
+      - ExperienceDomain
+      - SharedDomain
+      - Symfony
+      - Psr
+    BookingInfrastructure:
+      - BookingInfrastructure
+      - BookingApplication
+      - BookingDomain
+      - SessionInfrastructure
+      - SessionApplication
+      - SessionDomain
+      - ExperienceInfrastructure
+      - ExperienceApplication
+      - ExperienceDomain
+      - SharedInfrastructure
+      - SharedDomain
+      - Symfony
+      - Doctrine
+      - Psr
+      - HttpFoundation
