@@ -1,0 +1,22 @@
+---
+description: Casos de uso y su traducción a pruebas. Se consulta al escribir pruebas funcionales o de concurrencia.
+globs: tests/**/Functional/**,tests/Concurrency/**
+alwaysApply: false
+---
+
+# Casos de uso
+
+Los nueve casos de uso, con actor, endpoint, precondiciones, flujo principal, extensiones y postcondiciones, están en @docs/use-cases.md. Es la única copia.
+
+La tabla «Fases de implementación» de ese documento dice qué casos de uso cubre cada fase. Escribe pruebas solo de los que cubre la fase actual.
+
+# Cómo se traducen a pruebas
+
+- Cada fila de la tabla de extensiones de un caso de uso es un test funcional. No inventes escenarios que no estén en la ficha, ni omitas los que sí están.
+- El flujo principal es un test más: el camino feliz con su postcondición aseverada, no solo el código de respuesta.
+- Toda aserción de error comprueba el código HTTP y el `type` del cuerpo `problem+json`, nunca solo el código.
+- Las extensiones transversales (`400 malformed-json`, `415 unsupported-media-type`) se prueban una vez en `tests/Shared/Functional/`. En el resto solo aparecen como regresión donde el bloque de la fase lo pida por escrito.
+- Las postcondiciones se aseveran contra el estado, no contra la respuesta: tras reservar, un `GET` de la sesión muestra el contador movido.
+- El nombre del test describe la regla, no el método: `unaSegundaCancelacionDevuelveConflicto`, no `testCancelTwice`.
+- El tiempo llega por `FrozenClock`. Una prueba que dependa de la hora real no es determinista y no se acepta.
+- La prueba de concurrencia corre contra el contenedor levantado y su base de datos, nunca contra dobles, y vive en la suite `concurrency`, excluida de la ejecución por defecto.

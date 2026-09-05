@@ -1,0 +1,57 @@
+@startuml casos-de-uso-motor-reservas
+' Diagrama de casos de uso — Motor de reservas de experiencias (v1)
+
+title Motor de reservas de experiencias — Casos de uso (v1)
+
+left to right direction
+skinparam actorStyle awesome
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam nodesep 45
+skinparam ranksep 70
+
+' --------------------------- Actores primarios -----------------------
+actor "Cliente" as Cliente
+actor "Proveedor" as Proveedor
+
+' --------------------------- Frontera del sistema --------------------
+rectangle "API de reservas de experiencias" {
+
+  usecase "UC-01\nRegistrar experiencia" as UC01
+  usecase "UC-02\nConsultar una experiencia" as UC02
+  usecase "UC-03\nProgramar sesión\nde una experiencia" as UC03
+
+  usecase "UC-04\nConsultar disponibilidad\nde una sesión" as UC04
+  usecase "UC-05\nReservar plazas\nen una sesión" as UC05
+
+  usecase "UC-06\nConsultar una reserva" as UC06
+  usecase "UC-07\nCancelar una reserva" as UC07
+
+  usecase "UC-08\nNotificar reserva\nconfirmada" as UC08
+  usecase "UC-09\nNotificar reserva\ncancelada" as UC09
+}
+
+' --------------------------- Actor secundario ------------------------
+' Se declara tras la frontera para que el motor de layout lo coloque
+' a la derecha, como corresponde a un actor secundario.
+actor "Servicio de correo" as Correo <<sistema externo>>
+
+' --------------------------- Asociaciones ----------------------------
+Proveedor -- UC01
+Proveedor -- UC02
+Proveedor -- UC03
+
+Cliente -- UC02
+Cliente -- UC04
+Cliente -- UC05
+Cliente -- UC06
+Cliente -- UC07
+
+' ------------------ Relaciones entre casos de uso --------------------
+UC05 ..> UC08 : <<include>>
+UC07 ..> UC09 : <<include>>
+
+UC08 -- Correo
+UC09 -- Correo
+
+@enduml

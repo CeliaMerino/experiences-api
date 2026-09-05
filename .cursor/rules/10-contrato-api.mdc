@@ -1,0 +1,26 @@
+---
+description: Contrato de la API y traducción de errores a HTTP. Se consulta al tocar controladores, rutas o el listener de errores.
+globs: src/*/Infrastructure/Http/**,config/routes.yaml
+alwaysApply: false
+---
+
+# Contrato de la API
+
+Congelado. Ninguna fase lo altera.
+
+La tabla de endpoints, las representaciones de los tres recursos y la tabla de errores están en @docs/plan-fases.md, sección «Contrato de la API». Es la única copia: no la reproduzcas en código, en comentarios ni en un README.
+
+Cada endpoint corresponde a un caso de uso de @docs/use-cases.md. Sus extensiones son la lista completa de respuestas de error que ese endpoint puede devolver.
+
+# Reglas al tocar el borde HTTP
+
+- No se crea ningún endpoint que no esté en la tabla del contrato. Si una fase parece necesitar uno, dilo en la respuesta y no lo implementes.
+- El `type` de la respuesta sale del `errorType()` de la excepción concreta, nunca de un mapeo por clase padre. `SessionNotFound` produce `session-not-found`, no `not-found`; `SessionInThePast` produce `session-in-the-past`, no `invalid-value`.
+- `400 malformed-json` y `415 unsupported-media-type` no son errores de dominio. Se resuelven en `src/Shared/Infrastructure/Http/` antes de que la petición alcance la capa de aplicación.
+- Cualquier excepción no prevista sale como `500` sin exponer el mensaje interno.
+- Los controladores no contienen lógica de negocio: decodifican la petición, despachan por `command.bus` y traducen el resultado a HTTP. Cero condicionales sobre reglas de negocio.
+- El middleware `doctrine_transaction` envuelve el manejador completo. Un controlador no abre ni confirma transacciones por su cuenta.
+- Cada `201` lleva una cabecera `Location` que apunta a un `GET` existente y que responde `200`.
+- La cancelación es un subrecurso y no un `DELETE`, precisamente porque repetirla debe devolver `409`.
+- El `contactEmail` se recibe y se persiste, pero no aparece en ninguna representación.
+- Las rutas son sustantivos, sin verbos, y se declaran en `config/routes.yaml`, no con atributos en el controlador.

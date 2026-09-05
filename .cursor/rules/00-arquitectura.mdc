@@ -1,97 +1,73 @@
 ---
-description: Reglas de arquitectura, contrato de API y alcance del motor de reservas de experiencias
+description: Arquitectura, reglas inviolables y alcance del motor de reservas de experiencias
 globs:
 alwaysApply: true
 ---
 
-# Contexto del proyecto
+# Contexto
 
 API de reservas de experiencias. PHP 8.3 · Symfony 7 · PostgreSQL 16 · Doctrine ORM · PHPUnit 11 · Docker Compose.
 Arquitectura hexagonal con DDD, tres contextos: `Experience`, `Session`, `Booking`.
 
-El trabajo avanza por fases numeradas. En cada conversación se te dará una sola fase. No adelantes trabajo de fases posteriores ni rehagas fases cerradas.
+El trabajo avanza por fases numeradas. En cada conversación se te dará una sola fase. No adelantes trabajo de fases posteriores ni rehagas fases cerradas: tener el plan completo a la vista no es permiso para implementar lo que viene después.
+
+# Fuentes de verdad
+
+- `docs/plan-fases.md` — contrato de la API, tabla de errores y el bloque de cada fase.
+- `docs/casos-de-uso.md` — flujos, precondiciones y extensiones de los nueve casos de uso.
+- Este archivo — lo que invalida un cambio en cualquier diff.
+
+Ninguno de los tres reproduce lo que dice otro. Si aun así encuentras una contradicción, gana el documento de `docs/` y la reportas en la respuesta en lugar de elegir por tu cuenta.
 
 # Reglas inviolables
 
-Una violación invalida el cambio aunque los tests pasen.
+Una violación invalida el cambio aunque los tests pasen. La numeración es la misma que en `docs/plan-fases.md`.
 
 1. `src/*/Domain` no importa `Symfony\`, `Doctrine\`, `Psr\`, ni nada de `src/*/Infrastructure`.
 2. `src/*/Application` no importa `Doctrine\` ni `Symfony\Component\HttpFoundation`.
-3. `new DateTimeImmutable()` sin argumentos solo puede aparecer en `SystemClock`. En el resto del código la hora llega por el puerto `Clock`.
+3. `new DateTimeImmutable()` sin argumentos solo puede aparecer en `SystemClock`. En el resto del código, la hora llega por el puerto `Clock`.
 4. Los importes son enteros de la unidad mínima de la divisa. `float` está prohibido para dinero.
 5. El mapeo de Doctrine vive en XML bajo `config/doctrine/`. Las entidades no llevan atributos de ORM.
 6. Una migración ya creada no se edita. Los cambios de esquema van en una migración nueva.
-7. No instales dependencias que la fase no liste.
-8. No crees archivos fuera de la lista `Crea` de la fase.
-9. `declare(strict_types=1)` en todos los archivos PHP.
-10. La fase se cierra con `make check` en verde.
+7. No se instalan dependencias que la fase no liste.
+8. No se crean archivos fuera de la lista `Crea` de la fase.
+9. Entre módulos, las dependencias van `Booking → Session → Experience → Shared`. Nunca al revés, y sin ciclos.
+10. Constructores de agregados privados, cero setters, referencias entre agregados por identificador. La lógica que abarca dos agregados vive en un servicio de dominio, no en el manejador.
+11. `make check` en verde al cerrar cada fase.
+
+Además, `declare(strict_types=1)` en todos los archivos PHP. Lo verifica `make cs`.
 
 # Estructura de directorios
+
+Congelada. Las fases rellenan huecos, no reorganizan.
 
 ```
 src/
 ├── Shared/
-│   ├── Domain/          Aggregate/ Bus/ Clock/ Exception/ ValueObject/
-│   └── Infrastructure/  Clock/ Http/ Mailer/ Persistence/Doctrine/
+│   ├── Domain/          Aggregate/ Bus/Event/ Clock/ Exception/ ValueObject/
+│   └── Infrastructure/  Bus/Event/ Clock/ Http/ Mailer/ Persistence/Doctrine/
 ├── Experience/          Domain/ Application/ Infrastructure/
-├── Session/             Domain/ Application/ Infrastructure/
-└── Booking/             Domain/ Application/ Infrastructure/
+├── Session/             Domain/ Domain/Service/ Application/ Infrastructure/
+└── Booking/             Domain/ Domain/Service/ Application/ Infrastructure/
 tests/
 ├── Shared/  Experience/  Session/  Booking/     (Unit/ Application/ Functional/)
 └── Concurrency/
 config/doctrine/*.orm.xml
 migrations/
+docs/
 ```
 
 Los puertos (`Clock`, `ExperienceRepository`, `SessionRepository`, `BookingRepository`, `Mailer`) son interfaces dentro de `Domain`. Sus implementaciones viven en `Infrastructure`.
-
-# Contrato de la API
-
-Congelado. Ninguna fase lo altera.
-
-| Método | Ruta | Cuerpo | Éxito |
-|---|---|---|---|
-| POST | `/api/experiences` | `providerId`, `title`, `description`, `timezone` | `201` + `Location` |
-| POST | `/api/experiences/{experienceId}/sessions` | `startsAt` (ISO-8601 con offset), `capacity`, `priceAmount`, `priceCurrency` | `201` + `Location` |
-| POST | `/api/sessions/{sessionId}/bookings` | `userId`, `seats`, `contactEmail` | `201` + `Location` |
-| POST | `/api/bookings/{bookingId}/cancellation` | — | `204` |
-| GET | `/api/sessions/{sessionId}` | — | `200` |
-
-`GET /api/sessions/{id}` devuelve `id`, `experienceId`, `startsAt`, `capacity`, `seatsTaken`, `seatsAvailable`, `price`. Es el único endpoint de lectura.
-
-# Errores
-
-Cuerpo `application/problem+json` con `type`, `title`, `status`, `detail`.
-
-| Excepción | HTTP | `type` |
-|---|---|---|
-| `InvalidValue` | 422 | `invalid-value` |
-| `NotFound` | 404 | `not-found` |
-| `SessionDayTaken` | 409 | `session-day-taken` |
-| `SessionAlreadyStarted` | 409 | `session-already-started` |
-| `NotEnoughSeats` | 409 | `not-enough-seats` |
-| `BookingAlreadyCancelled` | 409 | `booking-already-cancelled` |
-| `CancellationWindowClosed` | 409 | `cancellation-window-closed` |
-
-Cualquier otra excepción sale como `500` sin exponer el mensaje interno.
-
-# Reglas de negocio
-
-- Una sesión tiene aforo máximo y su contador de ocupación nunca lo supera ni baja de cero.
-- No puede haber dos sesiones de la misma experiencia el mismo día civil, evaluado en la zona horaria de la experiencia.
-- No se crean sesiones con fecha de inicio anterior al instante actual.
-- No se reserva una sesión cuya fecha de inicio ya pasó.
-- Una reserva está `confirmed` o `cancelled`. Una cancelada no vuelve a cancelarse.
-- Cancelar una reserva confirmada devuelve sus plazas al inventario en la misma transacción.
-- No se cancela dentro de las 24 horas previas al inicio de la sesión.
-- Confirmar o cancelar emite un correo al `contactEmail`, desde un evento de dominio despachado después del commit, nunca dentro del caso de uso.
-- La venta de plazas ocurre en una transacción con bloqueo pesimista sobre la fila de la sesión, respaldada por una restricción en base de datos.
 
 # Fuera de alcance
 
 Si consideras que algo de esta lista hace falta, dilo en la respuesta pero no lo implementes.
 
-Pagos y reembolsos · autenticación y autorización · alta y gestión de proveedores o usuarios como entidades · catálogo, búsqueda o filtrado · listas de espera · modificación de reservas · reprogramación de sesiones · descuentos y tarifas variables · notificaciones fuera del correo · traducción de mensajes · frontend · envío real de correo · CQRS con modelos de lectura · event sourcing · caché · colas o workers · despliegue e infraestructura como código · paginación y endpoints de listado · versionado de API · OpenAPI · claves de idempotencia · patrón outbox · métricas y trazas.
+**Producto** — pagos, pasarelas, reembolsos · autenticación, autorización y sesiones de usuario · alta y gestión de proveedores o usuarios como entidades propias · catálogo, búsqueda o filtrado · listas de espera · modificación de reservas ya creadas · reprogramación o cancelación de sesiones por parte del proveedor · descuentos, cupones y tarifas variables · notificaciones fuera del correo · traducción de mensajes.
+
+**Técnico** — frontend de cualquier tipo · envío real de correo o integración con proveedor SMTP · CQRS con modelos de lectura separados · event sourcing · caché · colas o workers en segundo plano · websockets · despliegue, CI en la nube o infraestructura como código · autenticación de la API · paginación y endpoints de listado · versionado de la API · generación de OpenAPI · claves de idempotencia · patrón outbox · trabajos de reconciliación · métricas y trazas.
+
+**De proceso** — refactorizar código de fases cerradas salvo que la fase actual lo pida por escrito · añadir abstracciones para casos de uso que no estén en el contrato de la API · sustituir librerías ya elegidas.
 
 # Estilo
 
