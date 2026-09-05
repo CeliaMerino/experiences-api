@@ -1,0 +1,6 @@
+services:
+    App\Shared\Infrastructure\Clock\SystemClock:
+        class: App\Tests\Shared\FrozenClock
+        factory: ['App\Tests\Shared\FrozenClock', 'at']
+        arguments:
+            - '%frozen_clock.now%'

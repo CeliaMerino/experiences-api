@@ -354,3 +354,33 @@ Ninguna de esta fase. Planificador, persistencia y endpoints quedan en F8 y F9. 
 ### Deuda abierta
 
 - Retirar `config/packages/test/session.yaml` en F9. Persistencia, endpoints y extensión 4b quedan en F9.
+
+---
+
+## F9 — Infraestructura Session
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | Tipos DBAL `SessionId`, `Capacity`, `Seats` y `Money` (JSON en columna `price`); se borra `config/packages/test/session.yaml` (consulta 1, A). | Embeddable `Money` + mapping Shared en `doctrine.yaml`. | F6 ya autorizó tipos en Persistence. F0 deja `doctrine.yaml` fuera de F9. Sin borrar el alias, los funcionales persistían en memoria. |
+| 2 | Columna `timezone` no mapeada + `BEFORE` trigger que la copia de `experiences` + `session_day DATE GENERATED ALWAYS AS ((starts_at AT TIME ZONE timezone)::date) STORED` (consulta 2, A). | Propiedad `$timezone` en `Session`; generada sobre fecha UTC. | El agregado no tiene TZ y F9 no toca Domain. UTC rompería el día civil de UC-03. |
+| 3 | Concurrencia 4b con `curl_multi` contra `http://nginx` (consulta 3, A). | `php -S` (un hilo); suite `concurrency`; solo `save()` duplicado. | PHP-FPM paraleliza de verdad y ejercita el índice único. `ext-curl` está desde F0 para F9/F13. |
+| 4 | `config/services_test.yaml` redefine `SystemClock` como `FrozenClock` (consulta A′). | Pisar el alias en `clock.yaml`; fechas en 2030 con reloj real. | `packages/test` carga antes que `services.yaml`; el `#[AsAlias]` de F2 pisa el YAML. `services_test.yaml` es el gancho posterior. Sin esto el 1-jul-2026 ya es pasado (hoy 5-sep-2026). |
+
+### Supuestos
+
+- `make check` corre con nginx arriba; el test 4b habla con `http://nginx` y la BD `app`, no con `app_test`.
+- El trigger `INTO STRICT` exige que el `experience_id` exista en `experiences` también en un `INSERT` nativo.
+
+### Divergencias
+
+- Cuatro tipos Doctrine, el borrado de `session.yaml` y `services_test.yaml` no están en el `Crea` literal; autorizados en consultas 1 y A′.
+- Columna `timezone` y trigger no nombrados en el Crea; autorizados en consulta 2 para que la generada `session_day` sea el día civil de la experiencia.
+
+### Deuda abierta
+
+- El listener de F3 sigue sin desempaquetar `HandlerFailedException`; el controlador de alta lo hace a mano (deuda de F6).
+- BookingId sigue debiendo `\Stringable` (deuda de F6).
+

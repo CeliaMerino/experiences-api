@@ -19,3 +19,13 @@ get_experience:
     path: /api/experiences/{experienceId}
     methods: [GET]
     controller: App\Experience\Infrastructure\Http\GetExperienceController
+
+create_session:
+    path: /api/experiences/{experienceId}/sessions
+    methods: [POST]
+    controller: App\Session\Infrastructure\Http\CreateSessionController
+
+get_session:
+    path: /api/sessions/{sessionId}
+    methods: [GET]
+    controller: App\Session\Infrastructure\Http\GetSessionController
