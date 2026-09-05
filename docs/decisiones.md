@@ -328,3 +328,29 @@ Ninguna respecto al bloque de F7.
 ### Deuda abierta
 
 Ninguna de esta fase. Planificador, persistencia y endpoints quedan en F8 y F9. BookingId sigue debiendo `\Stringable` (deuda de F6).
+
+---
+
+## F8 — Servicio de dominio y aplicación Session
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `config/packages/test/session.yaml` aliasa `SessionRepository` → `InMemorySessionRepository` (consulta 1, A). | Sin `AsMessageHandler`; stub Doctrine en `src/`. | F9 no toca Application; el manejador debe registrarse ya. Sin alias el kernel de test no compila. Mismo patrón que F5. |
+| 2 | Extensiones UC-03 1a–4a en unit/application; 4b y HTTP en F9 (consulta 2, A). | Funcionales HTTP en F8. | El `Crea` no incluye endpoints; gana `plan-fases.md` frente a la regla 20. |
+| 3 | Criterio «sin `>` / `<`» del manejador = tokens de comparación, no el `>` de `->`. | Grep literal de carácter. | `->` es `T_OBJECT_OPERATOR`; un grep ingenuo invalidaría cualquier llamada. |
+| 4 | `getForUpdate` en memoria = mismo lookup que `find`, luego `SessionNotFound`. | Devolver `null` como `find`. | El puerto exige `Session` (F7 decisión 6); «como `find`» = sin bloqueo. |
+
+### Supuestos
+
+- F9 borrará o reapuntará `config/packages/test/session.yaml` al registrar `DoctrineSessionRepository` con `#[AsAlias]`, igual que F6 con Experience.
+
+### Divergencias
+
+- Un fichero de `config/packages/test/` no listado en el `Crea` original. Autorizado en consulta 1.
+
+### Deuda abierta
+
+- Retirar `config/packages/test/session.yaml` en F9. Persistencia, endpoints y extensión 4b quedan en F9.

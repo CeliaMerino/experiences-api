@@ -1,0 +1,5 @@
+services:
+    App\Tests\Session\InMemorySessionRepository: ~
+
+    App\Session\Domain\SessionRepository:
+        alias: App\Tests\Session\InMemorySessionRepository
