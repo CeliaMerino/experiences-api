@@ -217,3 +217,31 @@ Ninguna de esta fase.
 ### Deuda abierta
 
 Ninguna de esta fase. Los buses quedan sin prueba PHPUnit porque el `Acepta cuando` no los pide; F12 los usa.
+
+---
+
+## F4 — Dominio Experience
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `Experience::create()` recibe un `ExperienceId` ya construido. | Generar el id dentro de la fábrica. | F5 asigna la generación al manejador y lo devuelve al llamante. |
+| 2 | `Title::of` recorta y trata solo espacios como vacío. Longitud con `strlen`. | Rechazar únicamente `''`; contar con `iconv_strlen`/`grapheme_strlen`. | «Título vacío» es lenguaje de negocio. Los criterios de aceptación son ASCII; `mbstring` no está en la imagen. |
+| 3 | `Description` acepta cualquier cadena, sin recortar. | Rechazar vacío o imponer un máximo. | UC-01 no declara regla sobre la descripción. |
+| 4 | `ProviderId` envuelve `Uuid`, igual que `ExperienceId`. | Cadena opaca no vacía. | Reutiliza F2. Un valor mal formado sale como `InvalidValue`, no como un `type` nuevo. |
+| 5 | Zona horaria vía `new \DateTimeZone($id)` capturando `\Exception`. | `timezone_identifiers_list()`. | `Mars/Olympus` falla igual; no exige un VO ni un fichero fuera de `Crea`. |
+| 6 | `Experience` no extiende `AggregateRoot`. | Extenderlo por ser agregado. | Este contexto no registra eventos en el plan. |
+
+### Supuestos
+
+- F5 implementará `ExperienceRepository::get()` como `find() ?? throw new ExperienceNotFound($id)`. El puerto lo declara; F4 no tiene adaptador que ejecutar.
+
+### Divergencias
+
+Ninguna respecto al bloque de F4.
+
+### Deuda abierta
+
+Ninguna de esta fase. Persistencia, caso de uso de alta y endpoints quedan en F5 y F6.
