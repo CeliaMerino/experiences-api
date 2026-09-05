@@ -14,7 +14,7 @@ Cada endpoint corresponde a un caso de uso de @docs/use-cases.md. Sus extensione
 
 # Reglas al tocar el borde HTTP
 
-- No se crea ningún endpoint que no esté en la tabla del contrato. Si una fase parece necesitar uno, dilo en la respuesta y no lo implementes.
+- No se crea ningún endpoint que no esté en la tabla del contrato. Si una fase parece necesitar uno, dilo en la respuesta y no lo implementes. La única excepción es la ruta de prueba de F3, registrada solo cuando `APP_ENV=test`.
 - El `type` de la respuesta sale del `errorType()` de la excepción concreta, nunca de un mapeo por clase padre. `SessionNotFound` produce `session-not-found`, no `not-found`; `SessionInThePast` produce `session-in-the-past`, no `invalid-value`.
 - `400 malformed-json` y `415 unsupported-media-type` no son errores de dominio. Se resuelven en `src/Shared/Infrastructure/Http/` antes de que la petición alcance la capa de aplicación.
 - Cualquier excepción no prevista sale como `500` sin exponer el mensaje interno.

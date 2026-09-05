@@ -197,7 +197,7 @@ Se evalúan antes de que la petición alcance la capa de aplicación, así que p
 
 **Reglas aplicadas** — el contador nunca supera el aforo ni baja de cero, respaldado por una restricción en base de datos que rechaza toda escritura por encima del aforo. El importe se congela en la reserva: un cambio posterior de precio no altera el comprobante ya emitido. La coordinación entre los agregados de sesión y reserva vive en un servicio de dominio, no en el manejador.
 
-**Requisitos no funcionales** — p95 por debajo de 300 ms con 200 peticiones concurrentes sobre la misma sesión. 50 peticiones simultáneas de una plaza sobre una sesión de aforo 10 dan 10 confirmadas y 40 rechazadas con `409`, quedando el contador en 10.
+**Requisitos no funcionales** — 50 peticiones simultáneas de una plaza sobre una sesión de aforo 10 dan 10 confirmadas y 40 rechazadas con `409`, quedando el contador en 10. Lo verifica F13.
 
 ---
 

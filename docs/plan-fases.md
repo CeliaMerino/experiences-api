@@ -4,7 +4,7 @@ Documento de trabajo para un agente de codificación. Una fase por sesión y por
 
 Cada fase declara qué casos de uso de `use-cases.md` cubre. Las fases sin esa línea son andamiaje.
 
-**Stack fijado:** PHP 8.3 · Symfony 7.4 · PostgreSQL 17 · Doctrine ORM · PHPUnit 13 · Docker Compose
+**Stack fijado:** PHP 8.4 · Symfony 7.4 · PostgreSQL 17 · Doctrine ORM · PHPUnit 13 · Docker Compose
 
 **Línea de base del repo** — no se parte de un directorio vacío. El esqueleto Symfony 7.4 Flex ya existe, con Doctrine, Messenger, Mailer, Serializer, Validator, PHPUnit 13, PHPStan y PHP CS Fixer. `compose.yaml` solo declara el servicio `database` (`postgres:17-alpine`). Faltan `Dockerfile`, servicios `php` y `nginx`, `Makefile`, deptrac, monolog y el árbol hexagonal. F0 y F1 completan ese esqueleto; no lo recrean ni revierten los paquetes ya instalados.
 
@@ -76,19 +76,19 @@ Congelado desde F0. Las fases rellenan huecos, no reorganizan.
 ```
 src/
 ├── Shared/
-│   ├── Domain/          Aggregate/ Bus/Event/ Clock/ Exception/ ValueObject/
+│   ├── Domain/          Aggregate/ Bus/Event/ Clock/ Exception/ ValueObject/ Mailer.php
 │   └── Infrastructure/  Bus/Event/ Clock/ Http/ Mailer/ Persistence/Doctrine/
 ├── Experience/          Domain/ Application/ Infrastructure/
 ├── Session/             Domain/ Domain/Service/ Application/ Infrastructure/
 └── Booking/             Domain/ Domain/Service/ Application/ Infrastructure/
 tests/
-├── Shared/  Experience/  Session/  Booking/     (Unit/ Application/ Functional/)
+├── Shared/     Experience/  Session/  Booking/   (dobles en la raíz · Unit/ Application/ Functional/)
 └── Concurrency/
 config/doctrine/*.orm.xml
 migrations/
 ```
 
-Los puertos (`Clock`, `ExperienceRepository`, `SessionRepository`, `BookingRepository`, `Mailer`) se declaran como interfaces dentro de `Domain`. Sus implementaciones viven en `Infrastructure`.
+Los puertos (`Clock`, `ExperienceRepository`, `SessionRepository`, `BookingRepository`, `Mailer`) se declaran como interfaces dentro de `Domain`. Sus implementaciones viven en `Infrastructure`. Los dobles (`FrozenClock`, repositorios en memoria, `SpyMailer`) viven en `tests/<Módulo>/`, no dentro de `Unit/`, `Application/` ni `Functional/`.
 
 ---
 
@@ -112,12 +112,14 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 **Entrega** — La aplicación arranca dentro de Compose, habla con PostgreSQL y tiene el árbol hexagonal vacío.
 
 **Crea**
-- `Dockerfile` con PHP 8.3-fpm, extensiones `pdo_pgsql`, `intl` y Composer.
-- En `compose.yaml`, servicios `php` y `nginx` (puerto anfitrión 8080) en la misma red que `database`. No se recrea ni se renombra el servicio `database` (`postgres:17-alpine`).
+- `Dockerfile` con PHP 8.4-fpm, extensiones `pdo_pgsql`, `intl`, `curl` y Composer.
+- `docker/nginx/default.conf` — nginx hace de proxy FastCGI hacia php-fpm y usa `public/` como document root.
+- `docker/postgres/init-test-db.sql` — `CREATE DATABASE app_test;`. Montado en `docker-entrypoint-initdb.d` del servicio `database`.
+- En `compose.yaml`, servicios `php` y `nginx` (puerto anfitrión 8080) en la misma red que `database`. `php` y `nginx` montan el directorio del proyecto. No se recrea ni se renombra el servicio `database` (`postgres:17-alpine`); sí se le añade el volumen de init.
 - El árbol de directorios completo del mapa anterior, con un `.gitkeep` por carpeta vacía. `src/Kernel.php` se conserva. Los directorios Flex `src/Entity`, `src/Repository` y `src/Controller` no forman parte del mapa: no se usa su código.
 - `DATABASE_URL` en `.env` y `.env.test` apuntando al host `database` con usuario/contraseña `app`/`app` y `serverVersion=17`.
 - En `config/packages/doctrine.yaml`, mapeo XML bajo `config/doctrine/` para los tres contextos. Se retira el mapping Flex `App\Entity` por atributos.
-- En `composer.json`, la restricción `"php": ">=8.3"` para coincidir con la imagen.
+- En `composer.json`, la restricción `"php": ">=8.4"` para coincidir con la imagen y con PHPUnit 13.
 
 **Instala** — ninguna dependencia nueva.
 
@@ -125,8 +127,9 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 
 **Acepta cuando**
 - `docker compose up -d` deja `php`, `nginx` y `database` en estado `running`.
-- `curl -s -o /dev/null -w "%{http_code}" localhost:8080` devuelve un código HTTP, no un error de conexión.
+- `curl -s localhost:8080` no contiene `Welcome to nginx` y el cuerpo es de Symfony (front controller).
 - `docker compose exec php bin/console doctrine:query:sql "SELECT 1"` devuelve una fila.
+- `docker compose exec database psql -U app -d app_test -c "SELECT 1"` devuelve una fila.
 
 ---
 
@@ -136,15 +139,16 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 **Entrega** — Un único comando que verifica estilo, tipos, capas y pruebas.
 
 **Crea**
-- Suites `unit`, `application`, `functional` y `concurrency` en el `phpunit.dist.xml` ya existente (no se renombra a `phpunit.xml.dist`); `concurrency` excluida de la ejecución por defecto.
+- Suites `unit`, `application`, `functional` y `concurrency` en el `phpunit.dist.xml` ya existente (no se renombra a `phpunit.xml.dist`). `defaultTestSuite` apunta a `unit,application,functional`; `concurrency` está definida y no forma parte del default. No se usa `--exclude-testsuite` en el `Makefile`.
 - `phpstan.dist.neon` en `level: 9`, analizando `src` y `tests`. No se crea `phpstan.neon`: Flex lo ignora en `.gitignore` como override local.
 - `deptrac.yaml` con dos conjuntos de capas: las técnicas (`Domain`, `Application`, `Infrastructure`) por módulo, y las de módulo (`Shared`, `Experience`, `Session`, `Booking`). Expresa como restricciones las reglas permanentes 1, 2 y 9.
 - En `.php-cs-fixer.dist.php`, regla `declare_strict_types` además del conjunto `@Symfony` que ya tiene.
-- `Makefile` con `up`, `down`, `test`, `stan`, `deptrac`, `cs`, `check` (los cuatro anteriores en cadena) y `concurrency`.
+- `declare(strict_types=1)` en `src/Kernel.php`, `public/index.php`, `bin/console` y `tests/bootstrap.php`.
+- `Makefile` con `up`, `down`, `test`, `stan`, `deptrac`, `cs`, `check` (los cuatro anteriores en cadena) y `concurrency`. `up` y `down` hablan con Compose en el anfitrión; el resto se ejecuta con `docker compose exec php`. `test` y `check` pasan `--do-not-fail-on-empty-test-suite`.
 
 **Instala** — `deptrac/deptrac` como require-dev. Ninguna otra.
 
-**No toca** — `compose.yaml`, `Dockerfile`, `src/`.
+**No toca** — `compose.yaml`, `Dockerfile`, `src/` salvo `src/Kernel.php` (solo `declare(strict_types=1)`).
 
 **Acepta cuando**
 - `make check` termina con código 0 y sin ninguna prueba ejecutada.
@@ -160,10 +164,11 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 
 **Crea**
 - `src/Shared/Domain/Exception/DomainError.php` (abstracta, con `errorType(): string`) y las hijas `InvalidValue`, `NotFound`, `Conflict`. Cada excepción concreta de los contextos devuelve su propio `errorType()`.
-- `src/Shared/Domain/ValueObject/Uuid.php` — envuelve `Symfony\Component\Uid` solo en el método de generación; el resto opera sobre `string`.
+- `src/Shared/Domain/ValueObject/Uuid.php` — genera un UUID v4 con `random_bytes` y opera el resto sobre `string`. No importa `Symfony\`.
 - `src/Shared/Domain/ValueObject/Money.php` — `int $amount` en unidades mínimas, `string $currency` de 3 letras, `multiply(int $factor)`, `equals()`. Rechaza importes negativos y divisas mal formadas.
 - `src/Shared/Domain/Clock/Clock.php` — interfaz con `now(): DateTimeImmutable`.
 - `src/Shared/Infrastructure/Clock/SystemClock.php`.
+- `config/packages/test/clock.yaml` — en `APP_ENV=test`, el puerto `Clock` se resuelve a `FrozenClock`, con el instante inyectable.
 - `src/Shared/Domain/Aggregate/AggregateRoot.php` — acumula eventos en memoria y los libera con `pullDomainEvents()`.
 - `src/Shared/Domain/Bus/Event/DomainEvent.php` — interfaz con `aggregateId()` y `occurredOn()`.
 - `tests/Shared/FrozenClock.php` — doble que devuelve siempre el instante que se le inyecta.
@@ -189,7 +194,8 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 - `src/Shared/Infrastructure/Http/JsonRequestDecoder.php` — decodifica el cuerpo de las peticiones con contenido. Lanza `MalformedJson` si el JSON no parsea y `UnsupportedMediaType` si el `Content-Type` no es `application/json`. Ambas viven en `src/Shared/Infrastructure/Http/` porque no son errores de dominio.
 - `src/Shared/Infrastructure/Http/ProblemJsonExceptionListener.php` — mapea `InvalidValue`, `NotFound` y `Conflict` según la tabla de errores, usando el `errorType()` de la excepción concreta; añade `MalformedJson` a `400` y `UnsupportedMediaType` a `415`. Cualquier otra excepción sale como `500` sin filtrar el mensaje interno.
 - Completa el `config/packages/messenger.yaml` ya existente: bus `command.bus` con el middleware `doctrine_transaction`, y bus `event.bus` con `dispatch_after_current_bus`.
-- `tests/Shared/Functional/ProblemJsonTest.php` — una ruta de prueba que recibe cuerpo y lanza cada excepción; asevera código, `Content-Type` y forma del cuerpo.
+- `src/Shared/Infrastructure/Http/ProblemJsonTestController.php` y `config/routes/test.yaml` — ruta de prueba que recibe cuerpo y lanza cada excepción. Solo se carga cuando `APP_ENV=test`. No forma parte del contrato de la API.
+- `tests/Shared/Functional/ProblemJsonTest.php` — dispara esa ruta; asevera código, `Content-Type` y forma del cuerpo.
 
 **No toca** — `src/Shared/Domain` completo.
 
@@ -211,7 +217,7 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 **Crea**
 - `src/Experience/Domain/Experience.php` — identidad, `ProviderId`, `Title`, `Description`, `DateTimeZone`. Constructor privado, método de fábrica `create()`.
 - `src/Experience/Domain/ExperienceId.php`, `ProviderId.php`, `Title.php`, `Description.php`.
-- `src/Experience/Domain/ExperienceRepository.php` — `save()`, `find(ExperienceId): ?Experience`.
+- `src/Experience/Domain/ExperienceRepository.php` — `save()`, `find(ExperienceId): ?Experience`, `get(ExperienceId): Experience` que lanza `ExperienceNotFound` si no existe.
 - `src/Experience/Domain/ExperienceNotFound.php` extendiendo `NotFound`, con `errorType()` igual a `experience-not-found`.
 - `tests/Experience/Unit/ExperienceTest.php`.
 
@@ -256,6 +262,7 @@ El manejador genera el identificador y lo devuelve al llamante.
 - `migrations/VersionXXXXXX_experiences.php` — tabla `experiences` con clave primaria UUID.
 - `src/Experience/Infrastructure/Persistence/DoctrineExperienceRepository.php`.
 - `src/Experience/Infrastructure/Http/CreateExperienceController.php` y `GetExperienceController.php`, más sus entradas en `config/routes.yaml`.
+- En `tests/bootstrap.php`, aplicar las migraciones sobre la base `app_test`.
 - `tests/Experience/Functional/ExperienceEndpointsTest.php`.
 
 **No toca** — `src/Experience/Domain`, `src/Experience/Application`, el listener y el decodificador de F3.
@@ -301,7 +308,7 @@ El manejador genera el identificador y lo devuelve al llamante.
 
 **Crea**
 - `src/Session/Domain/Service/SessionScheduler.php` — recibe `SessionRepository` y `Clock`. Su método `schedule(Experience, DateTimeImmutable $startsAt, Capacity, Money): Session` convierte `startsAt` a la zona horaria de la experiencia, comprueba que no haya sesión ese día civil y devuelve la sesión programada.
-- `src/Session/Application/Create/CreateSessionCommand.php` y `CreateSessionCommandHandler.php` — carga la experiencia, delega en el planificador y guarda. Sin condicionales ni aritmética.
+- `src/Session/Application/Create/CreateSessionCommand.php` y `CreateSessionCommandHandler.php` — carga la experiencia con `ExperienceRepository::get()`, delega en el planificador y guarda. Sin condicionales ni aritmética.
 - `tests/Session/InMemorySessionRepository.php` — `getForUpdate()` se comporta como `find()`.
 - `tests/Session/Unit/SessionSchedulerTest.php` y `tests/Session/Application/CreateSessionTest.php`.
 

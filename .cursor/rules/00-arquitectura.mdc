@@ -6,7 +6,7 @@ alwaysApply: true
 
 # Contexto
 
-API de reservas de experiencias. PHP 8.3 · Symfony 7.4 · PostgreSQL 17 · Doctrine ORM · PHPUnit 13 · Docker Compose.
+API de reservas de experiencias. PHP 8.4 · Symfony 7.4 · PostgreSQL 17 · Doctrine ORM · PHPUnit 13 · Docker Compose.
 Arquitectura hexagonal con DDD, tres contextos: `Experience`, `Session`, `Booking`.
 
 El trabajo avanza por fases numeradas. En cada conversación se te dará una sola fase. No adelantes trabajo de fases posteriores ni rehagas fases cerradas: tener el plan completo a la vista no es permiso para implementar lo que viene después.
@@ -46,20 +46,20 @@ Congelada. Las fases rellenan huecos, no reorganizan.
 ```
 src/
 ├── Shared/
-│   ├── Domain/          Aggregate/ Bus/Event/ Clock/ Exception/ ValueObject/
+│   ├── Domain/          Aggregate/ Bus/Event/ Clock/ Exception/ ValueObject/ Mailer.php
 │   └── Infrastructure/  Bus/Event/ Clock/ Http/ Mailer/ Persistence/Doctrine/
 ├── Experience/          Domain/ Application/ Infrastructure/
 ├── Session/             Domain/ Domain/Service/ Application/ Infrastructure/
 └── Booking/             Domain/ Domain/Service/ Application/ Infrastructure/
 tests/
-├── Shared/  Experience/  Session/  Booking/     (Unit/ Application/ Functional/)
+├── Shared/     Experience/  Session/  Booking/   (dobles en la raíz · Unit/ Application/ Functional/)
 └── Concurrency/
 config/doctrine/*.orm.xml
 migrations/
 docs/
 ```
 
-Los puertos (`Clock`, `ExperienceRepository`, `SessionRepository`, `BookingRepository`, `Mailer`) son interfaces dentro de `Domain`. Sus implementaciones viven en `Infrastructure`.
+Los puertos (`Clock`, `ExperienceRepository`, `SessionRepository`, `BookingRepository`, `Mailer`) son interfaces dentro de `Domain`. Sus implementaciones viven en `Infrastructure`. Los dobles (`FrozenClock`, repositorios en memoria, `SpyMailer`) viven en `tests/<Módulo>/`, no dentro de `Unit/`, `Application/` ni `Functional/`.
 
 # Fuera de alcance
 
