@@ -413,3 +413,31 @@ Ninguna respecto al bloque de F10 tras resolver la consulta 1.
 
 Ninguna de esta fase. Coordinación con Session, persistencia y endpoints quedan en F11 y F12. La deuda de `\Stringable` en `BookingId` queda cerrada aquí.
 
+---
+
+## F11 — Servicio de dominio y aplicación Booking
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `config/packages/test/booking.yaml` aliasa `BookingRepository` → `InMemoryBookingRepository` (consulta 1, A). | Sin `AsMessageHandler`; stub en `src/`. | Sin impl del puerto, el kernel de test no compila. Mismo patrón que F5/F8. |
+| 2 | Mismo alias en `config/packages/dev/booking.yaml` (consulta 2, A). | Solo test; stub en `src/`; quitar `AsMessageHandler`. | Nginx usa `APP_ENV=dev`; sin alias, el funcional de concurrencia de F9 devolvía `500` por autowire. |
+| 3 | Reserva inexistente con `find($id) ?? throw new BookingNotFound($id)`. | Añadir `get()` al puerto F10. | El puerto no está en `Crea`; `??` no es `if` ni comparación (decisión local 2/4). |
+| 4 | `Clock` inyectado en los manejadores y pasado a `SeatReservation`. | `Clock` solo en el servicio. | Firma del `Crea`: `Clock` es parámetro de `reserve`/`cancel`. |
+| 5 | Extensiones UC-05/UC-07 en unit/application; HTTP en F12. | Funcionales HTTP en F11. | El `Crea` no incluye endpoints; gana `plan-fases.md` frente a la regla 20. |
+
+### Supuestos
+
+- F12 retirará `config/packages/test/booking.yaml` y `config/packages/dev/booking.yaml` al registrar `DoctrineBookingRepository` con `#[AsAlias]`.
+- No hay rutas de booking hasta F12; el alias InMemory en `dev` solo evita el fallo de compilación del contenedor.
+
+### Divergencias
+
+- Dos ficheros de alias fuera del `Crea` literal; autorizados en consultas 1 y 2.
+
+### Deuda abierta
+
+- Retirar los alias InMemory de test/dev en F12. Persistencia, endpoints y UC-05 8a quedan en F12; correo en F14.
+
