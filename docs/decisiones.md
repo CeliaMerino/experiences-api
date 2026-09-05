@@ -160,3 +160,30 @@ Ninguna respecto al bloque de F1.
 ### Deuda abierta
 
 Ninguna de esta fase.
+
+---
+
+## F2 — Núcleo compartido: errores, identidad, dinero y reloj
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `InvalidValue` concreta; `NotFound` y `Conflict` abstractas. | Las tres concretas con `errorType` genéricos. | La tabla de errores solo tipifica `invalid-value` como padre usable; los 404/409 son siempre hijas de contexto. |
+| 2 | `DomainError extends \DomainException`. | Extender `\Exception` o `\RuntimeException`. | Encaja el significado; no cambia el contrato HTTP. |
+| 3 | Alias prod `Clock` → `SystemClock` vía `#[AsAlias]` en `SystemClock`. | Entrada en `config/services.yaml`. | `services.yaml` no está en `Crea`; el atributo vive en un fichero que sí lo está. |
+| 4 | `FrozenClock::at(string)` + parámetro `frozen_clock.now` en el YAML de test. | Solo constructor + ExpressionLanguage en el YAML. | Evita depender del language; el instante sigue siendo inyectable por parámetro. |
+| 5 | `Money::of` / `Uuid::fromString` + `equals`/`value`; divisa `^[A-Z]{3}$`. | Constructor público; aceptar minúsculas. | Misma forma que el resto de VOs previstos; ISO-4217 en mayúsculas evita ambigüedad. |
+
+### Supuestos
+
+- El binding `Clock` → `FrozenClock` en test no se ejercita en esta fase (no hay funcional en `Crea`); se asume correcto hasta F3/F7.
+
+### Divergencias
+
+Ninguna respecto al bloque de F2.
+
+### Deuda abierta
+
+Ninguna de esta fase.

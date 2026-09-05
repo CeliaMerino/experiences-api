@@ -1,0 +1,12 @@
+parameters:
+    frozen_clock.now: '2026-06-15T12:00:00+00:00'
+
+services:
+    App\Tests\Shared\FrozenClock:
+        factory: ['App\Tests\Shared\FrozenClock', 'at']
+        arguments:
+            - '%frozen_clock.now%'
+
+    App\Shared\Domain\Clock\Clock:
+        alias: App\Tests\Shared\FrozenClock
+        public: true
