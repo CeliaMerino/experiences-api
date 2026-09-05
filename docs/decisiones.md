@@ -187,3 +187,33 @@ Ninguna respecto al bloque de F2.
 ### Deuda abierta
 
 Ninguna de esta fase.
+
+---
+
+## F3 — Borde HTTP: errores y buses
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `MalformedJson.php` y `UnsupportedMediaType.php` como ficheros propios (consulta 1, A). | Ambas clases en `JsonRequestDecoder.php`. | PSR-4; el párrafo del Crea las sitúa en ese directorio aunque no las liste como línea. |
+| 2 | `type` del 500 = `about:blank` (consulta 2, A). | `internal-server-error`. | RFC 7807 cuando no hay tipo asignado; no inventa un valor que parezca de la tabla congelada. |
+| 3 | Listener a prioridad `-1` (consulta 3, A). | `-129` (después del `ErrorListener`) o `10` (antes del log). | `ExceptionEvent::setResponse()` corta la propagación. A `-1` corre después de `logKernelException` (0) y antes de que el `ErrorListener` (`-128`) ponga HTML. |
+| 4 | `default_bus: command.bus`; `event.bus` con `allow_no_handlers` y sin repetir `dispatch_after_current_bus`. | Listar el middleware por defecto a mano, o dejar el bus sin nombre por defecto. | Symfony 7.4 exige `default_bus` con más de un bus; el `dispatch_after_current_bus` ya va en el middleware por defecto. |
+| 5 | JSON con claves no string (lista) se rechaza como `MalformedJson`. | `replace()` directo del `json_decode`. | `InputBag::replace()` exige `array<string, mixed>`; PHPStan level 9 lo marca. El contrato solo envía objetos. |
+| 6 | `config/routes/test.yaml` envuelto en `when@test:`. | Subdirectorio `config/routes/test/` (no es el path del Crea). | El glob de Flex carga `config/routes/*.yaml` en todos los envs; el `when@` es el mismo patrón que `framework.yaml`. |
+
+### Supuestos
+
+- El binding `Clock` → `FrozenClock` en test se carga al arrancar el kernel de los funcionales; no se asevera el instante.
+- `doctrine_transaction` en `command.bus` no se ejercita hasta que existan manejadores (F5/F12).
+
+### Divergencias
+
+- Dos ficheros de excepción HTTP-edge que el Crea nombra como clases pero no como líneas de fichero. Autorizado en consulta 1.
+- La prioridad del listener no puede ser posterior al `ErrorListener`: el API de Symfony lo impide. Autorizado en consulta 3.
+
+### Deuda abierta
+
+Ninguna de esta fase. Los buses quedan sin prueba PHPUnit porque el `Acepta cuando` no los pide; F12 los usa.

@@ -1,0 +1,5 @@
+when@test:
+    problem_json_test:
+        path: /_test/problem-json
+        methods: [POST]
+        controller: App\Shared\Infrastructure\Http\ProblemJsonTestController
