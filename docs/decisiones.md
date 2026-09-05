@@ -70,3 +70,34 @@ Ninguna respecto a lo implementado: esta entrada solo alinea documentos. El repo
 ### Deuda abierta
 
 Ninguna de esta auditoría. F0 queda desbloqueada.
+
+---
+
+## F0 — Contenedores de aplicación
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `DATABASE_URL` también como variable de entorno del servicio `php` en `compose.yaml`. | Confiar solo en `.env` / `.env.test`. | En este checkout `.env.local` apunta a `127.0.0.1:54321` y Symfony lo carga encima de `.env`. La variable real gana; no se toca el fichero gitignored. |
+| 2 | Tres mappings XML en `config/doctrine/{Experience,Session,Booking}` con prefijos `App\<Contexto>\Domain`. | Un directorio plano `config/doctrine/*.orm.xml`, o un único mapping `prefix: App`. | DoctrineBundle 3 registra un `SimplifiedXmlDriver` y hace `array_flip(prefix → dir)`: tres prefijos sobre el mismo `dir` se colapsan. F6/F9/F12 no tocan `doctrine.yaml`. |
+| 3 | F0 se cierra con sus cuatro `Acepta cuando`, sin `make check`. | Adelantar el `Makefile` o invocar phpstan/cs a mano. | El `Makefile` nace en F1. La regla permanente 11 cede ante el bloque específico de F0. |
+
+### Corrección del documento
+
+En `docs/plan-fases.md`, el tercer criterio de F0 decía `doctrine:query:sql`. Ese comando era un alias de DoctrineBundle 2.x, deprecado en 2.2 y retirado en 3.0. Con `doctrine/doctrine-bundle` ^3.3 no existe. Se sustituyó por `dbal:run-sql`. No es una divergencia de implementación: el criterio estaba mal escrito.
+
+### Supuestos
+
+- El volumen `db_data` estaba vacío al primer `up`; el init de `app_test` solo corre entonces.
+- `vendor/` del host, bind-montado, es usable por PHP 8.4-fpm. No se ejecutó `composer install` en la imagen.
+
+### Divergencias
+
+Ninguna respecto al criterio ya corregido. Los XML de F6/F9/F12 quedan en `config/doctrine/<Contexto>/<Agregado>.orm.xml`, no en `config/doctrine/<Agregado>.orm.xml` como listan esas fases.
+
+### Deuda abierta
+
+- `composer.lock` sigue con `"platform"."php": ">=8.2"`; no se ejecutó `composer update --lock`.
+- F6 (y F9, F12) deberán crear el XML en el subdirectorio de su contexto.

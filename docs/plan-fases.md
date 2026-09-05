@@ -128,7 +128,7 @@ Fuera de alcance. Si el agente propone cualquiera de estos, se rechaza el cambio
 **Acepta cuando**
 - `docker compose up -d` deja `php`, `nginx` y `database` en estado `running`.
 - `curl -s localhost:8080` no contiene `Welcome to nginx` y el cuerpo es de Symfony (front controller).
-- `docker compose exec php bin/console doctrine:query:sql "SELECT 1"` devuelve una fila.
+- `docker compose exec php bin/console dbal:run-sql "SELECT 1"` devuelve una fila.
 - `docker compose exec database psql -U app -d app_test -c "SELECT 1"` devuelve una fila.
 
 ---
