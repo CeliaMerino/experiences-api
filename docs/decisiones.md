@@ -384,3 +384,32 @@ Ninguna de esta fase. Planificador, persistencia y endpoints quedan en F8 y F9. 
 - El listener de F3 sigue sin desempaquetar `HandlerFailedException`; el controlador de alta lo hace a mano (deuda de F6).
 - BookingId sigue debiendo `\Stringable` (deuda de F6).
 
+---
+
+## F10 — Dominio Booking
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `confirm(..., Clock $clock)` para `occurredOn` del evento (consulta 1, A). | `DateTimeImmutable $occurredOn`; o `new DateTimeImmutable()` sin args. | Simétrico a `cancel`; F11 ya tendrá `Clock` en `reserve`. La regla 3 prohíbe el reloj suelto. |
+| 2 | `confirm` recibe `Money $total` ya congelado; no multiplica. | Multiplicar precio unitario × plazas dentro de `confirm`. | F11 calcula con `Session::priceFor()`; multiplicar aquí duplicaría. |
+| 3 | `Booking` extiende `AggregateRoot`. | Eventos sin la base compartida. | F2/F14 esperan `record` / `pullDomainEvents`. |
+| 4 | `BookingId` implementa `\Stringable`. | Dejar la deuda de F6. | Misma forma que `SessionId`; F12 tipará la columna. |
+| 5 | `ContactEmail` valida con `filter_var` + `FILTER_VALIDATE_EMAIL`. | `egulias/email-validator` o regex propia. | Domain sin Symfony; PHP nativo basta para UC-05 1b. |
+| 6 | Ventana cerrada si `sessionStartsAt <= now + PT24H` (incluye 24 h exactas). | Solo `<` (permitir exactamente 24 h). | UC-07 4a: «24 horas o menos»; misma semántica que `Session::startsWithin`. |
+
+### Supuestos
+
+- F11 pasará a `confirm` el resultado de `Session::priceFor()` y el mismo `Clock` del caso de uso.
+- `BookingRepository::find` basta en F10; un `get()` que lance `BookingNotFound` puede aparecer en F11/F12 si hace falta el «sin `if`».
+
+### Divergencias
+
+Ninguna respecto al bloque de F10 tras resolver la consulta 1.
+
+### Deuda abierta
+
+Ninguna de esta fase. Coordinación con Session, persistencia y endpoints quedan en F11 y F12. La deuda de `\Stringable` en `BookingId` queda cerrada aquí.
+
