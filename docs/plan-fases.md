@@ -258,7 +258,7 @@ El manejador genera el identificador y lo devuelve al llamante.
 **Entrega** — Persistencia real y los dos primeros endpoints vivos.
 
 **Crea**
-- `config/doctrine/Experience.orm.xml`.
+- `config/doctrine/Experience/Experience.orm.xml`.
 - `migrations/VersionXXXXXX_experiences.php` — tabla `experiences` con clave primaria UUID.
 - `src/Experience/Infrastructure/Persistence/DoctrineExperienceRepository.php`.
 - `src/Experience/Infrastructure/Http/CreateExperienceController.php` y `GetExperienceController.php`, más sus entradas en `config/routes.yaml`.
@@ -329,7 +329,7 @@ El manejador genera el identificador y lo devuelve al llamante.
 **Entrega** — Persistencia con las dos garantías a nivel de esquema, la traducción de la violación de unicidad y los endpoints de sesión.
 
 **Crea**
-- `config/doctrine/Session.orm.xml`.
+- `config/doctrine/Session/Session.orm.xml`.
 - `migrations/VersionXXXXXX_sessions.php` — tabla `sessions` con columna generada `session_day` (`DATE`), índice único sobre `(experience_id, session_day)`, y `CHECK (seats_taken >= 0 AND seats_taken <= capacity)`.
 - `src/Session/Infrastructure/Persistence/DoctrineSessionRepository.php` — `getForUpdate()` usa `LockMode::PESSIMISTIC_WRITE`. `save()` captura la violación del índice único y la relanza como `SessionDayTaken`, de modo que la carrera entre dos altas simultáneas sale como `409` y nunca como `500`.
 - `src/Session/Infrastructure/Http/CreateSessionController.php` y `GetSessionController.php`, más sus rutas.
@@ -407,7 +407,7 @@ La ventana de cancelación es una constante del dominio fijada en 24 horas.
 **Entrega** — Los tres endpoints de reserva sobre transacción real con bloqueo.
 
 **Crea**
-- `config/doctrine/Booking.orm.xml`.
+- `config/doctrine/Booking/Booking.orm.xml`.
 - `migrations/VersionXXXXXX_bookings.php` — tabla `bookings` con índice sobre `session_id` y `status` como cadena.
 - `src/Booking/Infrastructure/Persistence/DoctrineBookingRepository.php`.
 - `src/Booking/Infrastructure/Http/BookSeatsController.php`, `CancelBookingController.php` y `GetBookingController.php`, más sus rutas.

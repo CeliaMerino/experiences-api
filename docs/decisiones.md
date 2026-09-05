@@ -101,3 +101,35 @@ Ninguna respecto al criterio ya corregido. Los XML de F6/F9/F12 quedan en `confi
 
 - `composer.lock` sigue con `"platform"."php": ">=8.2"`; no se ejecutó `composer update --lock`.
 - F6 (y F9, F12) deberán crear el XML en el subdirectorio de su contexto.
+
+---
+
+## Auditoría F1–F14 — Defectos del documento
+**Fecha:** 2026-09-05 · **Commit:** —
+
+No es una fase. Recoge lo aprobado en la pasada de auditoría sobre `docs/plan-fases.md`. Son defectos del documento, no divergencias de implementación.
+
+### Correcciones aprobadas
+
+| # | Fase | Lista | Antes | Después | Motivo |
+|---|---|---|---|---|---|
+| 1 | F6 | Crea | `config/doctrine/Experience.orm.xml` | `config/doctrine/Experience/Experience.orm.xml` | El `dir` de Doctrine apunta a `config/doctrine/Experience/`. El Crea nombraba un hermano de ese directorio; el driver no lo lee. F6 no lista `doctrine.yaml`. |
+| 2 | F9 | Crea | `config/doctrine/Session.orm.xml` | `config/doctrine/Session/Session.orm.xml` | Igual que #1 con el mapping Session. |
+| 3 | F12 | Crea | `config/doctrine/Booking.orm.xml` | `config/doctrine/Booking/Booking.orm.xml` | Igual que #1 con el mapping Booking. |
+
+Opción A (corregir el documento). La B (mover el `dir` en `doctrine.yaml` a un plano) se descartó: tres prefijos sobre el mismo `dir` se colapsan en DoctrineBundle 3.
+
+Esto cierra la deuda abierta de F0 sobre la ruta de esos XML.
+
+### Filas rechazadas o aplazadas
+
+Ninguna.
+
+### Sospechosos descartados (no volver a reportar)
+
+| # | Sospecha | Por qué no es defecto |
+|---|---|---|
+| 1 | F1 crea `phpstan.neon`, ignorado por `.gitignore` | El Crea ya dice que no se crea. `phpstan.dist.neon` no está ignorado. |
+| 2 | F1 exige `deptrac.yaml` sin el paquete | Instala declara `deptrac/deptrac`. |
+| 3 | F1 crea `phpunit.xml.dist` | El Crea nombra el `phpunit.dist.xml` ya existente y prohíbe el rename. |
+| 4 | F14 `LoggerMailer` sin monolog ni servicio `logger` | F14 Instala `symfony/monolog-bundle`. El servicio `logger` ya existe sin monolog (`Symfony\Component\HttpKernel\Log\Logger`). |
