@@ -471,3 +471,29 @@ Ninguna de esta fase. Coordinación con Session, persistencia y endpoints quedan
 
 - UC-05 8a y correo (UC-08/UC-09) en F14. Concurrencia de aforo en F13. El unwrap de `HandlerFailedException` sigue en cada controlador de escritura (deuda de F6).
 
+---
+
+## F13 — Prueba de concurrencia
+**Fecha:** 2026-09-05 · **Commit:** —
+
+### Decisiones
+
+| # | Decisión | Alternativa descartada | Motivo |
+|---|---|---|---|
+| 1 | `Makefile` intacto: el objetivo `concurrency` de F1 ya apunta a la suite excluida. | Reescribir el target. | El `Crea` pide el objetivo; el contenido ya es el correcto. |
+| 2 | `curl_multi` contra `http://nginx`; `startsAt` en 2030. | WebTestCase / `localhost:8080` / fecha 2026. | Mismo patrón que F9 4b; nginx usa reloj real (`SystemClock`). |
+| 3 | `COUNT` confirmadas vía `DsnParser` + `DriverManager` sobre `DATABASE_URL` (BD `app`). | Kernel `dev` + servicio Doctrine privado; PDO crudo. | DBAL 4 exige driver/DSN parseado; el servicio DBAL no es público fuera del contenedor de test. |
+| 4 | Aserción de `409` solo por código HTTP. | Exigir `type: not-enough-seats` en las 40. | El `Acepta cuando` de F13 no pide el `type`. |
+
+### Supuestos
+
+- `make concurrency` exige Compose arriba (nginx + php + database). `make check` no ejecuta esta suite.
+
+### Divergencias
+
+Ninguna respecto al bloque de F13.
+
+### Deuda abierta
+
+- UC-05 8a y correo (UC-08/UC-09) en F14. El unwrap de `HandlerFailedException` sigue en cada controlador de escritura (deuda de F6).
+
